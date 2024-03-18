@@ -1,4 +1,7 @@
-.vscode
+*
+!/**/
+!*.*
+.vscode/
 smallchat.dSYM
 smallchat-server
 smallchat-client
