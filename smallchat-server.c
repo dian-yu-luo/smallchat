@@ -42,6 +42,7 @@
  * even for people that don't know a lot of C.
  * =========================================================================== */
 
+// 指定可以连接的服务端的数量
 #define MAX_CLIENTS 1000 // This is actually the higher file descriptor.
 #define SERVER_PORT 7711
 
@@ -49,6 +50,9 @@
  * info about it: the socket descriptor and the nick name, if set, otherwise
  * the first byte of the nickname is set to 0 if not set.
  * The client can set its nickname with /nick <nickname> command. */
+
+//  客户端需要指定的内容,套接字描述符,也就是文件描述符,
+// TODO 需要处理一下文件的问题,文件的读写需要用到什么
 struct client
 {
     int fd;     // Client socket.
@@ -56,38 +60,62 @@ struct client
 };
 
 /* This global structure encapsulates the global state of the chat. */
+
+// 全局的聊天状态
+
 struct chatState
 {
     int serversock;                      // Listening server socket.
-    int numclients;                      // Number of connected clients right now.
-    int maxclient;                       // The greatest 'clients' slot populated.
-    struct client *clients[MAX_CLIENTS]; // Clients are set in the corresponding
+    int numclients;                      // 用户的数量              // Number of connected clients right now.
+    int maxclient;                       // 用户的槽              // The greatest 'clients' slot populated.
+    struct client *clients[MAX_CLIENTS]; // 这里有根指针,指向,并且他的大小很大
+                                         // Clients are set in the corresponding
                                          // slot of their socket descriptor.
 };
 
-struct chatState *Chat; // Initialized at startup.
+struct chatState *Chat; // Initialized at startup. // 定义好了结构体直接就全局用上了,比较好的思路
 
 /* ====================== Small chat core implementation ========================
  * Here the idea is very simple: we accept new connections, read what clients
  * write us and fan-out (that is, send-to-all) the message to everybody
  * with the exception of the sender. And that is, of course, the most
  * simple chat system ever possible.
+ * 上面就是在介绍最简单的聊天室的思路,接收连接,读取客户端的信息,并把信息发送给
+ * 所有人.
  * =========================================================================== */
 
 /* Create a new client bound to 'fd'. This is called when a new client
  * connects. As a side effect updates the global Chat state. */
-struct client *createClient(int fd)
+// 创建客户端,客户端会保存数据,文件描述符和
+struct client *createClient(int fd) //
 {
+    //
     char nick[32]; // Used to create an initial nick for the user.
     int nicklen = snprintf(nick, sizeof(nick), "user:%d", fd);
+    // TODO 就分配了一个的空间的大小,这是要干什么?
+
+    // TODO 还要注意一个东西,从c往cpp 转向的过程中就不需要手动的malloc ,
+    // 但是这个过程中发生的是什么问题?cpp又是靠什么取代的这个问题
+    // 手动malloc可能会存在的问题
     struct client *c = chatMalloc(sizeof(*c));
+    // 函数的字面意思是给套接字设置非阻塞的,也就是默认情况下设置这个不会失误
+    // 怎么做的呢? 进入看看
     socketSetNonBlockNoDelay(fd); // Pretend this will not fail.
+    // 设定值
     c->fd = fd;
+    // 用户名在上面声明过来,就是一个字符串,user + 创建的次数,fd 从外界传进来
     c->nick = chatMalloc(nicklen + 1);
+    // 内存拷贝,移动数据,上面分配好了空间,这个时候就可以把东西移动过去了
     memcpy(c->nick, nick, nicklen);
+    // 聊天转态,这个全局变量,操作的内容是什么
+    // TODO assert 一般的用途是什么,为什么要用这个东西
     assert(Chat->clients[c->fd] == NULL); // This should be available.
+    // 全局转态改变
+    // 这行就有点看不懂了,这写的是个啥?
+    // TODO PROBLIM
     Chat->clients[c->fd] = c;
     /* We need to update the max client set if needed. */
+    // 最后更新Chat 的一个队列的大小
     if (c->fd > Chat->maxclient)
         Chat->maxclient = c->fd;
     Chat->numclients++;

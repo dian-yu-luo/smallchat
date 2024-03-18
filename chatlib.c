@@ -18,21 +18,31 @@
  * crazy goals for the future of C: like to make the whole language an
  * Undefined Behavior.
  * =========================================================================== */
+/*  网络底层设置,作者是撒东西
+ub 问题怎么解决?,这是在干啥?
+ */
 
 /* Set the specified socket in non-blocking mode, with no delay flag. */
+
+// 他的作用是提高网络效率,就是更快一点
+// TODO 怎么做到的?
+
 int socketSetNonBlockNoDelay(int fd)
 {
     int flags, yes = 1;
-
+    // socket 是非阻塞的了,注意这几个函数的问题
     /* Set the socket nonblocking.
      * Note that fcntl(2) for F_GETFL and F_SETFL can't be
      * interrupted by a signal. */
+    // 在这里进行修改socket文件描述符的性质?修改了个毛线?
     if ((flags = fcntl(fd, F_GETFL)) == -1)
         return -1;
     if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
         return -1;
 
     /* This is best-effort. No need to check for errors. */
+    // 设置成非阻塞,非delay的情况
+    // TODO 这个东西到底影响了什么?
     setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof(yes));
     return 0;
 }
@@ -147,8 +157,15 @@ int acceptClient(int server_socket)
  * will discover that in most programs designed to run for a long time, that
  * are not libraries, trying to recover from out of memory is often futile
  * and at the same time makes the whole program terrible. */
+
+// 这里的功能是什么
+// 定义一个分配器,崩溃,不动了,定义什么时候崩溃
+// 也就是主动崩溃,
+// TODO 很多时候向操作系统申请信息,操作系统不给,(为啥不给?) ptr == NULL 的原因,
+// 主动的封装一层
 void *chatMalloc(size_t size)
 {
+    // TODO malloc 的使用方法,这里可以从上一个调用中查看
     void *ptr = malloc(size);
     if (ptr == NULL)
     {
